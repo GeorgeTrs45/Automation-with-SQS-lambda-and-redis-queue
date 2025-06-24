@@ -12,13 +12,13 @@ function startWorker() {
 
       console.log(`🛠️ Automating ${name || 'product'} (${quantity}) at ${url}`);
       await new Promise((r) => setTimeout(r, 3000));
-      console.log(`✅ Job ${job.id} done`);
+      console.log(`Automation Job: ${job.id} done`);
     },
     { connection }
   );
 
   worker.on('completed', (job) => {
-    console.log(`✅ Job ${job.id} completed`);
+    console.log(`✅ Job ${job.id} completed successfully`);
   });
 
   worker.on('failed', (job, err) => {
