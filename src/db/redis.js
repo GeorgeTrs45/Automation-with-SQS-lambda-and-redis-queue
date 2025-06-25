@@ -4,6 +4,6 @@ require('dotenv').config();
 
 const connection = new Redis(process.env.REDIS_URL,{maxRetriesPerRequest: null});
 
-const productQueue = new Queue('product-automation', { connection });
+const redisQueue = new Queue('product-automation', { connection });
 
-module.exports = { productQueue };
+module.exports = { redisQueue };
