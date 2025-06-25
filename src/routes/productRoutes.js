@@ -1,5 +1,5 @@
 const express = require('express');
-const { enqueueProduct } = require('../controllers/productController');
+const { enqueueProduct } = require('../controllers/productQueueController');
 const { getProductById, updateFeedback, removeVendor } = require('../controllers/productDataController');
 
 const router = express.Router();
