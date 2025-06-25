@@ -38,7 +38,7 @@ async function autoAcceptCookies(page) {
         return true;
       }
     } catch (e) {
-      // ignore
+      console.log("🚀 ~ autoAcceptCookies ~ e:", e)
     }
   }
   const texts = [
@@ -53,7 +53,7 @@ async function autoAcceptCookies(page) {
         return true;
       }
     } catch (ex) {
-      // ignore
+      console.log("🚀 ~ autoAcceptCookies ~ ex:", ex)
     }
   }
   return false;
@@ -80,13 +80,21 @@ async function automateAmazon(page, product) {
   return screenshotPath;
 }
 
+async function automateTesco(page, product) {
+  const screenshotPath = path.join(screenshotsDir, `${product.id}_Tesco.png`);
+  await page.screenshot({ path: screenshotPath, fullPage: true });
+  console.log('Tesco screenshot saved:', screenshotPath);
+  return screenshotPath;
+}
+
 async function automateProduct(product) {
-  const { url, vendor_name, id, name, quantity, product_id } = product;
-  console.log('Processing product:', { url, vendor_name, id, name, quantity });
+  const { url, vendor_name, id, name, quantity } = product;
+  console.log('Processing product ID:', id);
   let browser;
   let feedback = '';
   try {
-    browser = await chromium.launch({ headless: true });
+    console.log('-->Starting automation..');
+    browser = await chromium.launch({ headless: false });
     const page = await browser.newPage();
     await page.setViewportSize({
       width: 1280 + Math.floor(Math.random() * 100),
@@ -106,6 +114,10 @@ async function automateProduct(product) {
         screenshotPath = await automateSainsburys(page, product);
         feedback = `Sainsbury's automation completed. Screenshot: ${screenshotPath}`;
         break;
+      case 'tesco':
+        screenshotPath = await automateTesco(page, product);
+        feedback = `Tesco automation completed. Screenshot: ${screenshotPath}`;
+        break;
       case 'amazon uk':
         screenshotPath = await automateAmazon(page, product);
         feedback = `Amazon UK automation completed. Screenshot: ${screenshotPath}`;
@@ -114,14 +126,15 @@ async function automateProduct(product) {
         feedback = `No automation implemented for vendor: ${vendor_name}`;
         status = 'vendor_not_supported';
     }
-    if (product_id) {
-      await updateFeedbackDb(product_id, feedback);
+    console.log('..automation complete. \nUpdating db..');
+    if (id) {
+      await updateFeedbackDb(id, feedback);
     }
-    console.log(`Automation for product_id ${product_id} done. Status: ${status}`);
+    console.log(`Automation for id ${id} done. Status: ${status}`);
   } catch (err) {
     feedback = `Error processing ${url}: ${err.message}`;
-    if (product && product.product_id) {
-      await updateFeedbackDb(product.product_id, feedback);
+    if (product && product.id) {
+      await updateFeedbackDb(product.id, feedback);
     }
     console.error(feedback);
   } finally {

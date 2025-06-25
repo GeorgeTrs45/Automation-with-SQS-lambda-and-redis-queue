@@ -1,4 +1,5 @@
 const { fetchProductById, updateFeedbackDb, removeVendorDb } = require('../models/productModel');
+const { automateProduct } = require('../services/automationServices');
 
 const getProductById = async (req, res, next) => {
   try {
@@ -32,8 +33,18 @@ const removeVendor = async (req, res, next) => {
   }
 };
 
+const automateController = async (req, res, next) => {
+  try {
+    await automateProduct(req.body);
+    res.status(200).json({message: `Automation job id: ${req.body.id} completed`});
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+};
+
 module.exports = {
   getProductById,
   updateFeedback,
-  removeVendor
+  removeVendor,
+  automateController
 }; 
