@@ -2,9 +2,6 @@ const path = require('path');
 
 const screenshotsDir = path.join(__dirname, '../../screenshots');
 
-function sleep(ms) {
-  return new Promise(res => setTimeout(res, ms));
-}
 
 async function autoAcceptCookies(page) {
   const selectors = [
@@ -52,4 +49,75 @@ async function autoAcceptCookies(page) {
   return false;
 }
 
-module.exports = { sleep, autoAcceptCookies, screenshotsDir }; 
+// --- Stealth & Automation Utilities ---
+function randomDelay(min = 2000, max = 6000) {
+  return Math.floor(Math.random() * (max - min)) + min;
+}
+
+const userAgents = [
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 13_3_1) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.4 Safari/605.1.15",
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:115.0) Gecko/20100101 Firefox/115.0",
+  "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+];
+
+function getRotatedHeaders(website) {
+  const userAgent = userAgents[Math.floor(Math.random() * userAgents.length)];
+  return {
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8",
+    "Referer": website,
+    "Upgrade-Insecure-Requests": "1",
+    "User-Agent": userAgent,
+    "X-Amzn-Trace-Id": `Root=1-${Math.random().toString(16).slice(2)}`,
+    "Accept-Language": "en-US,en;q=0.9"
+  };
+}
+
+function getRandomViewport() {
+  const viewports = [
+    { width: 1920, height: 1080 },
+    { width: 1366, height: 768 },
+    { width: 1440, height: 900 },
+    { width: 1536, height: 864 },
+    { width: 1600, height: 900 },
+    { width: 1280, height: 720 }
+  ];
+  return viewports[Math.floor(Math.random() * viewports.length)];
+}
+
+async function moveMouseRandomly(page) {
+  const loopCount = Math.floor(Math.random() * 5) + 1;
+  let x = 500, y = 500;
+  await page.mouse.move(x, y);
+  for (let i = 0; i < loopCount; i++) {
+    x += Math.floor(Math.random() * 200) - 100;
+    y += Math.floor(Math.random() * 200) - 100;
+    await page.mouse.move(x, y, { steps: 10 });
+    await page.waitForTimeout(Math.floor(Math.random() * 500) + 300);
+  }
+}
+
+async function injectStealthScripts(context) {
+  await context.addInitScript(() => {
+    Object.defineProperty(navigator, 'webdriver', { get: () => false });
+    window.navigator.chrome = { runtime: {} };
+    Object.defineProperty(navigator, 'plugins', { get: () => [1, 2, 3] });
+    Object.defineProperty(navigator, 'languages', { get: () => ['en-US', 'en'] });
+
+    const originalQuery = window.navigator.permissions.query;
+    window.navigator.permissions.query = (parameters) =>
+      parameters.name === 'notifications'
+        ? Promise.resolve({ state: Notification.permission })
+        : originalQuery(parameters);
+
+    const getParameter = WebGLRenderingContext.prototype.getParameter;
+    WebGLRenderingContext.prototype.getParameter = function (parameter) {
+      if (parameter === 37445) return 'Intel Inc.'; // UNMASKED_VENDOR_WEBGL
+      if (parameter === 37446) return 'Intel Iris OpenGL Engine'; // UNMASKED_RENDERER_WEBGL
+      return getParameter.call(this, parameter);
+    };
+  });
+}
+
+
+module.exports = { autoAcceptCookies, screenshotsDir, randomDelay, getRotatedHeaders, getRandomViewport, moveMouseRandomly, injectStealthScripts }; 

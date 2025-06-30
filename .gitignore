@@ -42,3 +42,4 @@ next-env.d.ts
 /output
 /automation
 /screenshots
+/csharp_helper
