@@ -43,12 +43,12 @@ async function automateProduct(product) {
     await moveMouseRandomly(page);
     await page.waitForTimeout(randomDelay());
     await autoAcceptCookies(page);
-    let automationResponse = null, status = 'completed';
+    let automationResponse = null;
     switch ((vendor_name || '').toLowerCase()) {
       case 'asda':
         automationResponse = await automateAsda(page, product, randomNo);
         break;
-      case "sainsbury's":
+      case "sainsburys":
         automationResponse = await automateSainsburys(page, product, randomNo);
         break;
       case 'tesco':
@@ -58,8 +58,8 @@ async function automateProduct(product) {
         automationResponse = await automateAmazon(page, product, randomNo);
         break;
       default:
-        feedback = `Error: No automation implemented for vendor: ${vendor_name}`;
-        status = 'vendor_not_supported';
+        throw new Error(`No automation implemented for vendor: ${vendor_name}`);
+
     }
     await page.waitForTimeout(randomDelay());
     //response management
@@ -67,8 +67,6 @@ async function automateProduct(product) {
       feedback = `${vendor_name} automation completed. Screenshot: ${automationResponse.screenshotPath}`;
     } else if (automationResponse && automationResponse.error) {
       throw new Error(automationResponse.error);
-    } else{
-      throw new Error('Error with no feedback.')
     }
     // Save session state after automation
     await context.storageState({ path: sessionFile });
@@ -76,13 +74,14 @@ async function automateProduct(product) {
     if (id) {
       await updateFeedbackDb(id, feedback);
     }
-    console.log(`Automation for id ${id} done. Status: ${status}`);
+    console.log(`Automation for id ${id} done.`);
   } catch (err) {
     feedback = `Error processing ${url}: ${err.message}`;
     if (product && product.id) {
       await updateFeedbackDb(product.id, feedback);
     }
     console.error(feedback);
+    throw err;
   } finally {
     if (browser) {
       await browser.close();
