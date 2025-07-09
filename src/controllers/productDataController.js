@@ -1,4 +1,4 @@
-const { fetchProductById, updateFeedbackDb, removeVendorDb } = require('../models/productModel');
+const { fetchProductById, updateFeedbackDb, removeVendorDb, fetchAllFromTable } = require('../models/productModel');
 const { automateProduct } = require('../services/automationServices');
 
 const getProductById = async (req, res, next) => {
@@ -42,9 +42,21 @@ const automateController = async (req, res, next) => {
   }
 };
 
+// Generic controller for fetching all rows from a table (e.g., cookies tables)
+const getAllFromTable = async (req, res, next) => {
+  try {
+    const { table_name } = req.params;
+    const data = await fetchAllFromTable(table_name);
+    res.status(200).json(data);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+};
+
 module.exports = {
   getProductById,
   updateFeedback,
   removeVendor,
-  automateController
+  automateController,
+  getAllFromTable
 }; 

@@ -47,4 +47,12 @@ const removeVendorDb = async (product_id, vendor_name) => {
   }
 };
 
-module.exports = { fetchProductById, updateFeedbackDb, removeVendorDb }; 
+// Generic fetch for any table (e.g., cookies tables)
+const fetchAllFromTable = async (tableName) => {
+  if (!tableName) throw new Error('tableName is required');
+  const { data, error } = await supabase.from(`${tableName}_cookies`).select('*').order('id', { ascending: false }).limit(1);
+  if (error) throw new Error(error.message);
+  return data;
+};
+
+module.exports = { fetchProductById, updateFeedbackDb, removeVendorDb, fetchAllFromTable }; 
