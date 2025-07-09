@@ -39,7 +39,6 @@ async function automateProduct(product) {
     await injectStealthScripts(context);
     const page = await context.newPage();
     await page.goto(url, { waitUntil: 'networkidle', timeout: 60000 });
-    await page.waitForTimeout(randomDelay());
     await moveMouseRandomly(page);
     await page.waitForTimeout(randomDelay());
     await autoAcceptCookies(page);

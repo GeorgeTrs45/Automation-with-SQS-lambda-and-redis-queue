@@ -23,7 +23,7 @@ async function autoAcceptCookies(page) {
   ];
   for (const selector of selectors) {
     try {
-      const el = await page.$(selector);
+      const el = await page.waitForSelector(`${selector}`, { timeout: 30000 });
       if (el) {
         await el.click();
         console.log(`Clicked cookie banner with selector: ${selector}`);
@@ -31,21 +31,6 @@ async function autoAcceptCookies(page) {
       }
     } catch (e) {
       console.log("🚀 ~ autoAcceptCookies ~ e:", e)
-    }
-  }
-  const texts = [
-    'Accept', 'I agree', 'Got it', 'Allow all', 'Accept all', 'OK'
-  ];
-  for (const text of texts) {
-    try {
-      const el = await page.$(`button:has-text(\"${text}\")`);
-      if (el) {
-        await el.click();
-        console.log(`Clicked cookie banner with text: ${text}`);
-        return true;
-      }
-    } catch (ex) {
-      console.log("🚀 ~ autoAcceptCookies ~ ex:", ex)
     }
   }
   return false;
