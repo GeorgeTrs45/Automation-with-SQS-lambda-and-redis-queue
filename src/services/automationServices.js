@@ -2,12 +2,13 @@ const path = require('path');
 const fs = require('fs-extra');
 const { chromium } = require('playwright-extra');
 const StealthPlugin = require('puppeteer-extra-plugin-stealth');
-const { updateFeedbackDb } = require('../models/productModel');
+const { updateFeedbackDb, fetchAllFromTable } = require('../models/productModel');
 const automateAsda = require('./vendors/asda');
+const automateArgos = require('./vendors/argos')
 const automateSainsburys = require('./vendors/sainsburys');
 const automateTesco = require('./vendors/tesco');
 const automateAmazon = require('./vendors/amazon');
-const { autoAcceptCookies, screenshotsDir, getRotatedHeaders, getRandomViewport, moveMouseRandomly, randomDelay, injectStealthScripts } = require('./utils');
+const { autoAcceptCookies, screenshotsDir, getRotatedHeaders, getRandomViewport, moveMouseRandomly, randomDelay, injectStealthScripts, initializeVendorCookies } = require('./utils');
 
 chromium.use(StealthPlugin());
 
@@ -31,14 +32,18 @@ async function automateProduct(product) {
       userAgent: headers['User-Agent'],
       extraHTTPHeaders: headers
     };
-    if (fs.existsSync(sessionFile)) {
-      contextOptions.storageState = sessionFile;
-      console.log(`Loaded session for vendor '${vendor_name}' from ${sessionFile}`);
-    }
+    // if (fs.existsSync(sessionFile)) {
+    //   contextOptions.storageState = sessionFile;
+    //   console.log(`Loaded session for vendor '${vendor_name}' from ${sessionFile}`);
+    // }
     let context = await browser.newContext(contextOptions);
     await injectStealthScripts(context);
     const page = await context.newPage();
-    await page.goto(url, { waitUntil: 'networkidle', timeout: 60000 });
+
+    // --- Inject cookies from DB before navigation ---
+    await initializeVendorCookies(context, vendor_name, url, fetchAllFromTable);
+
+    await page.goto(url, { waitUntil: 'networkidle', timeout: 300000 });
     await moveMouseRandomly(page);
     await page.waitForTimeout(randomDelay());
     await autoAcceptCookies(page);
@@ -47,7 +52,10 @@ async function automateProduct(product) {
       case 'asda':
         automationResponse = await automateAsda(page, product, randomNo);
         break;
-      case "sainsburys":
+        case 'argos':
+          automationResponse = await automateArgos(page, product, randomNo);
+          break;
+        case "sainsburys":
         automationResponse = await automateSainsburys(page, product, randomNo);
         break;
       case 'tesco':
@@ -58,9 +66,7 @@ async function automateProduct(product) {
         break;
       default:
         throw new Error(`No automation implemented for vendor: ${vendor_name}`);
-
     }
-    await page.waitForTimeout(randomDelay());
     //response management
     if (automationResponse && automationResponse.success) {
       feedback = `${vendor_name} automation completed. Screenshot: ${automationResponse.screenshotPath}`;

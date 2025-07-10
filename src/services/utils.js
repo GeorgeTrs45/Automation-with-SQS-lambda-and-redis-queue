@@ -23,7 +23,7 @@ async function autoAcceptCookies(page) {
   ];
   for (const selector of selectors) {
     try {
-      const el = await page.waitForSelector(`${selector}`, { timeout: 30000 });
+      const el = await page.$(selector);
       if (el) {
         await el.click();
         console.log(`Clicked cookie banner with selector: ${selector}`);
@@ -33,7 +33,59 @@ async function autoAcceptCookies(page) {
       console.log("🚀 ~ autoAcceptCookies ~ e:", e)
     }
   }
+  const texts = [
+    'Continue and accept', 'Accept', 'I agree', 'Got it', 'Allow all', 'Accept all', 'OK'
+  ];
+  for (const text of texts) {
+    try {
+      const el = await page.$(`button:has-text(\"${text}\")`);
+      if (el) {
+        await el.click();
+        console.log(`Clicked cookie banner with text: ${text}`);
+        return true;
+      }
+    } catch (ex) {
+      console.log("🚀 ~ autoAcceptCookies ~ ex:", ex)
+    }
+  }
   return false;
+}
+
+async function initializeVendorCookies(context, vendor_name, url, fetchAllFromTable) {
+  if (!vendor_name) return;
+  const table = vendor_name.toLowerCase().replace(/\s+/g, '');
+  const cookieData = await fetchAllFromTable(table);
+  if (!cookieData) return;
+
+  let domain;
+  try {
+    const u = new URL(url);
+    domain = '.' + u.hostname.replace(/^www\./, '');
+  } catch {
+    domain = undefined;
+  } 
+
+  const ignoreFields = ['id', 'created_at'];
+  const dbCookies = Object.entries(cookieData)
+    .filter(([key]) => !ignoreFields.includes(key))
+    .map(([name, value]) => { 
+      return {
+        name,
+        value: String(value),
+        domain: domain,
+        path: '/',
+        httpOnly: false,
+        secure: true,
+        sameSite: 'None',
+        expire: '-1'
+      };
+    });
+
+  for (const dbCookie of dbCookies) {
+    await context.addCookies([dbCookie]);
+  }
+
+  console.log(`Updated/added ${dbCookies.length} cookies for vendor '${vendor_name}'`);
 }
 
 // --- Stealth & Automation Utilities ---
@@ -107,4 +159,4 @@ async function injectStealthScripts(context) {
 }
 
 
-module.exports = { autoAcceptCookies, screenshotsDir, randomDelay, getRotatedHeaders, getRandomViewport, moveMouseRandomly, injectStealthScripts }; 
+module.exports = { autoAcceptCookies, screenshotsDir, randomDelay, getRotatedHeaders, getRandomViewport, moveMouseRandomly, injectStealthScripts, initializeVendorCookies }; 
