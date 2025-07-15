@@ -1,8 +1,8 @@
 const path = require('path');
-
+const fs = require('fs');
 const screenshotsDir = path.join(__dirname, '../../screenshots');
 
-
+// accept cookies function
 async function autoAcceptCookies(page) {
   const selectors = [
     'button[aria-label*="accept"]',
@@ -23,17 +23,55 @@ async function autoAcceptCookies(page) {
   ];
   for (const selector of selectors) {
     try {
-      const el = await page.waitForSelector(`${selector}`, { timeout: 30000 });
+      const el = await page.$(selector);
       if (el) {
         await el.click();
         console.log(`Clicked cookie banner with selector: ${selector}`);
         return true;
       }
     } catch (e) {
-      console.log("🚀 ~ autoAcceptCookies ~ e:", e)
+      console.log("🚀 ~ autoAcceptCookies ~ e:", e.message)
+    }
+  }
+  const texts = [
+    'Accept', 'I agree', 'Got it', 'Allow all', 'Accept all', 'OK'
+  ];
+  for (const text of texts) {
+    try {
+      const el = await page.$(`button:has-text(\"${text}\")`);
+      if (el) {
+        await el.click();
+        console.log(`Clicked cookie banner with text: ${text}`);
+        return true;
+      }
+    } catch (ex) {
+      console.log("🚀 ~ autoAcceptCookies ~ ex:", ex.message)
     }
   }
   return false;
+}
+
+//session formatter
+function normalizeSameSite(value) {
+  const lower = String(value || '').toLowerCase();
+  if (lower === 'lax') return 'Lax';
+  if (lower === 'strict') return 'Strict';
+  if (lower === 'none' || lower === 'no_restriction' || lower === 'unspecified') return 'None';
+  return 'None';
+}
+async function convertCookiesToSessionFormatInPlace(filePath) {
+  try {
+    const data = JSON.parse(await fs.promises.readFile(filePath, 'utf8'));
+    const cookies = Array.isArray(data) ? data : data.cookies || [];
+    const formattedCookies = cookies.map(cookie => ({
+      ...cookie,
+      sameSite: normalizeSameSite(cookie.sameSite),
+    }));
+    return { cookies: formattedCookies, origins: [] };
+  } catch (error) {
+    console.log("🚀 ~ getSessionStorageState ~ error:", error.message)
+    return error.message;
+  }
 }
 
 // --- Stealth & Automation Utilities ---
@@ -107,4 +145,4 @@ async function injectStealthScripts(context) {
 }
 
 
-module.exports = { autoAcceptCookies, screenshotsDir, randomDelay, getRotatedHeaders, getRandomViewport, moveMouseRandomly, injectStealthScripts }; 
+module.exports = { autoAcceptCookies, screenshotsDir, randomDelay, convertCookiesToSessionFormatInPlace, getRotatedHeaders, getRandomViewport, moveMouseRandomly, injectStealthScripts }; 
